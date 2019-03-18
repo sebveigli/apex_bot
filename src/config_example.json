@@ -1,0 +1,8 @@
+{
+    "apiKeys": {
+        "TRN": "apex.tracker.gg/site-api => TRN-Api-Key"
+    },
+    "discord": {
+        "botToken": "xxxxxxxxxxxxxxxxxxxxxx"
+    }
+}
