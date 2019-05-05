@@ -103,5 +103,6 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-src/config.json
-src/data/db.json
+src/envs/dev/config.py
+src/envs/prod/config.py
+logs/*
