@@ -18,7 +18,7 @@ USER_DB = get_user_db()
 class Stats():
     @staticmethod
     def scheduled_update():
-        logger.debug("Doing scheduled update for Apex tracker information")
+        logger.debug("Doing scheduled update for user Apex data")
 
         users = USER_DB.get_users()
         updated_users = []
@@ -27,31 +27,33 @@ class Stats():
         valid, invalid = Stats._get_update(users)
 
         if len(invalid) > 0:
-            logger.info("Couldn't find information for {} users, skipping them in update. {}".format(len(invalid), invalid))
+            logger.info("Couldn't find information for {} users, skipping them in update {}".format(len(invalid), invalid))
 
         for v in valid:
             (user, response) = v[0], v[1]
 
-            Stats._standardize_response(response, timestamp)
-
+            response = Stats._standardize_response(response, timestamp)
+            
             (updated, state_changes) = Stats._do_update(user, response)
+            (started_session, ended_session, ended_match) = Stats._change_user_state(user, state_changes, timestamp)
 
             if updated:
                 updated_users.append([user, state_changes])
 
-                online = 'online' in state_changes
-                in_game = 'in_game' in state_changes
-                online_since = 0
+            if started_session:
+                # TODO: Create a new session
+                pass
 
-                if online:
-                    online_since = timestamp
+            if ended_match:
+                # TODO: Save match in session
+                pass
+            
 
-                USER_DB.set_state(
-                    user_id=user,
-                    is_online=online,
-                    in_game=in_game,
-                    online_since=online_since
-                )
+            if ended_session:
+                # TODO: End current session
+                pass
+            
+            
         return updated_users
 
     @staticmethod
@@ -133,39 +135,103 @@ class Stats():
             if not response['legends']['all'][legend].get('data'):
                 response['legends']['all'][legend]['data'] = {}
 
-        all_legends_stats = response['legends']['all']
-        selected_legend_stats = dict(legend=selected_legend, data=response['legends']['all'][selected_legend])
-        realtime_stats = response['realtime']
-        total_stats = response['total']
-        global_stats = response['global']
+        legends = response['legends']['all']
+        selected = dict(legend=selected_legend, data=response['legends']['selected'][selected_legend])
+        realtime = response['realtime']
+        total = response['total']
+        profile = response['global']
 
-        response = dict(
+        return dict(
             timestamp=timestamp,
-            legend_stats=all_legends_stats,
-            selected_stats=selected_legend_stats,
-            realtime_stats=realtime_stats,
-            total_stats=total_stats,
-            global_stats=global_stats
+            legends=legends,
+            selected=selected,
+            realtime=realtime,
+            total=total,
+            profile=profile
         )
 
     @staticmethod
     def _do_update(user, response):
         last_update = UPDATE_DB.get_latest_update(user)
 
+        if len(last_update) == 0:
+            UPDATE_DB.add_update(user, response)
+            return False, None
+
         state_changes = Stats._compare_for_realtime_changes(last_update, response)
 
-        # Check if any are true, if not then return
-        if len([state for state in state_changes if state_changes[state] == True]) == 0:
-            return False, None
-        
-        UPDATE_DB.add_update(user, response)
-        return True, state_changes
+        # Checks for when to update to DB
+        if state_changes['start_game'] or state_changes['finish_game'] or state_changes['changed_legend']:
+            UPDATE_DB.add_update(user, response)
+            return True, state_changes
+
+        return False, state_changes
     
     @staticmethod
     def _compare_for_realtime_changes(old, new):
         return dict(
-            online=old['realtime']['isOnline'] == 0 and new['realtime']['isOnline'] == 1,
-            offline=old['realtime']['isOnline'] == 1 and new['realtime']['isOnline'] == 0,
-            in_game= new['realtime']['isInGame'] == 1,
-            finished_game=old['realtime']['isInGame'] == 1 and new['realtime']['isInGame'] == 0,
+            online = new['realtime']['isOnline'],
+            start_game = old['realtime']['isInGame'] == 0 and new['realtime']['isInGame'] == 1,
+            finish_game = old['realtime']['isInGame'] == 1 and new['realtime']['isInGame'] == 0,
+            changed_legend = old['realtime']['selectedLegend'] != new['realtime']['selectedLegend'],
         )
+
+    @staticmethod
+    def _change_user_state(user, state_changes, timestamp):
+        started_session = False
+        ended_session = False
+        ended_match = False
+        
+        if state_changes is None:
+            USER_DB.set_state(
+                user_id=user,
+                state='offline',
+                last_session_started=None,
+                timestamp=timestamp
+            )
+            return
+
+        current_user_state = USER_DB.get_users([user]).iloc[0]['apex']
+
+        if state_changes['online'] and current_user_state['state'] == 'offline':
+            logger.debug("User {} is now online Apex".format(user))
+            USER_DB.set_state(
+                user_id=user,
+                state='online',
+                last_session_started=timestamp,
+                timestamp=timestamp
+            )
+
+            started_session = True
+
+        if state_changes['start_game']:
+            logger.debug("User {} has started a game of Apex".format(user))
+            USER_DB.set_state(
+                user_id=user,
+                state='in_game',
+                last_session_started=current_user_state['last_session_started'],
+                timestamp=timestamp
+            )
+
+        if state_changes['finish_game']:
+            logger.debug("User {} has just finished a game of Apex".format(user))
+            USER_DB.set_state(
+                user_id=user,
+                state='online',
+                last_session_started=current_user_state['last_session_started'],
+                timestamp=timestamp
+            )
+
+            ended_match = True
+
+        if not state_changes['online'] and current_user_state['state'] in ['online', 'in_game']:
+            logger.debug("User {} has gone offline in Apex".format(user))
+            USER_DB.set_state(
+                user_id=user,
+                state='offline',
+                last_session_started=current_user_state['last_session_started'],
+                timestamp=timestamp
+            )
+
+            ended_session = True
+        return started_session, ended_session, ended_match
