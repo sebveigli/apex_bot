@@ -42,7 +42,7 @@ class UserDBService():
             user=user_id,
             servers=[server_id],
             origin=origin_name,
-            apex={"online": 0, "in_game": 0, "online_since": 0},
+            apex={},
             registered_on=math.floor(time.time())
         )
 
@@ -68,10 +68,11 @@ class UserDBService():
         mongo.update_field('user', user_id, 'origin', origin_name)
     
     @staticmethod
-    def set_state(user_id, is_online, in_game, online_since):
+    def set_state(user_id, state, last_session_started, timestamp):
         new_apex = {
-            "online": is_online,
-            "in_game": in_game,
-            "online_since": online_since
+            "state": state,
+            "last_session_started": last_session_started,
+            "timestamp": timestamp
         }
+
         mongo.update_field('user', user_id, 'apex', new_apex)
