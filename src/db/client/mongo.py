@@ -79,18 +79,16 @@ class Mongo():
     
     def replace_data(self, key, value, data):
         for result in self.table.find({key: value}):
-            old = result
             new = {"$set": data}
 
-            self.table.update_one(old, new, upsert=True)
+            self.table.update_one({key: value}, new, upsert=True)
             return
     
     def update_field(self, key, value, field, data):
         for result in self.table.find({key: value}):
-            old = result
             new = {"$set": {field: data}}
             
-            self.table.update_one(old, new, upsert=True)
+            self.table.update_one({key: value}, new, upsert=True)
             return
     
     def push_data_to_list(self, key, value, field, values):
@@ -102,10 +100,9 @@ class Mongo():
     
     def remove_data_from_list(self, key, value, field, item_to_remove):
         for result in self.table.find({key: value}):
-            old = result
             new = {"$pull": {field: item_to_remove}}
 
-            self.table.update_one(old, new)
+            self.table.update_one({key: value}, new)
             return
 
     def get_all_data(self):
