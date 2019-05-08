@@ -1,3 +1,3 @@
 from .help import Help
 
-COMMANDS = [Help]
+commands = [Help]

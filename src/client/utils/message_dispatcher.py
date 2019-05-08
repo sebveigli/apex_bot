@@ -1,7 +1,7 @@
 import db
 import logging
 
-from client.commands import COMMANDS
+from client.commands import commands
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class MessageDispatcher():
         if not self._is_valid_command():
             return
 
-        for c in COMMANDS:
+        for c in commands:
             if c.match(self.split_message[0][1:]):
                 logger.debug("Matched with command class {}".format(c))
                 return await c.execute(self.message)
