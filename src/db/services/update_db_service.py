@@ -63,10 +63,10 @@ class UpdateDBService():
     def get_latest_update(user):
         data = mongo.find_first('user', user)
 
-        df = pd.DataFrame([data])
-
-        if len(df.updates) == 0:
+        if len(data['updates']) == 0:
             logger.info("No updates on user {}".format(user))
             return []
+            
+        df = pd.DataFrame([data])
         
         return df.updates[0][-1]
