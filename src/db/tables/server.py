@@ -9,7 +9,7 @@ from db.client.mongo import Mongo
 logger = logging.getLogger(__name__)
 
 
-class ServerDBService():
+class Server():
     def __init__(self):
         global mongo
         mongo = Mongo("servers", "server", True)

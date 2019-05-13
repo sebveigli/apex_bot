@@ -9,7 +9,7 @@ from db.client.mongo import Mongo
 logger = logging.getLogger(__name__)
 
 
-class UserDBService():
+class User():
     """
     Wrapper for the Users Database
 

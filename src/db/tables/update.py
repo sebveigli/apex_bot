@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 MINIMUM_TS = 0
 MAXIMUM_TS = 9999999999
 
-class UpdateDBService():
+class Update():
     def __init__(self):
         global mongo
         mongo = Mongo('updates', 'user', True)
