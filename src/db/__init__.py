@@ -1,12 +1,16 @@
-from db.services.user_db_service import UserDBService
-from db.services.server_db_service import ServerDBService
-from db.services.update_db_service import UpdateDBService
+from db.tables.user import User
+from db.tables.server import Server
+from db.tables.update import Update
+from db.tables.match import Match
 
 def get_user_db():
-    return UserDBService()
+    return User()
 
 def get_server_db():
-    return ServerDBService()
+    return Server()
 
 def get_update_db():
-    return UpdateDBService()
+    return Update()
+
+def get_match_db():
+    return Match()
