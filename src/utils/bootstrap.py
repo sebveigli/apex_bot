@@ -4,6 +4,8 @@ import os
 import sys
 import time
 
+from pymongo import MongoClient
+
 logger = logging.getLogger(__name__)
 
 SEVERITIES = {'debug': logging.DEBUG, 'info': logging.INFO, 'warning': logging.WARNING, 'error': logging.ERROR, 'critical': logging.CRITICAL}
@@ -17,6 +19,8 @@ def bootstrap_app(**kwargs):
     _set_env(args.env, kwargs.get('env'))
     _add_config_to_path()
     _start_loggers(SEVERITIES[args.file_severity], SEVERITIES[args.console_severity])
+    _check_db_connection()
+
 
     logger.info("App bootstrapped")
 
@@ -89,3 +93,15 @@ def _start_loggers(f_severity, c_severity):
 
     l.addHandler(fh)
     l.addHandler(ch)
+
+def _check_db_connection():
+    import config
+
+    logger.debug("Checking DB connection to Mongo")
+
+    try:
+        mc = MongoClient(host=config.MONGO['host'], port=config.MONGO['port'], serverSelectionTimeoutMS=100)
+        mc.admin.command('ismaster')
+    except Exception as e:
+        logger.critical("MongoDB does not seem to be running on your host. Please start the service, and try loading the bot again.")
+        sys.exit(-1)
