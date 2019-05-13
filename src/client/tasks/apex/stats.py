@@ -1,67 +1,20 @@
-import config
 import logging
 import json
-import math
-import time
-import os
 import requests
 
-from db import get_user_db, get_update_db
+from config import MOZAMBIQUE_HERE_API_KEY
 
 logger = logging.getLogger(__name__)
 
 API_URL = "http://api.mozambiquehe.re/bridge?version=2&platform={platform}&player={players}&auth={auth}"
 
-UPDATE_DB = get_update_db()
-USER_DB = get_user_db()
-
 class Stats():
     @staticmethod
-    def scheduled_update():
-        logger.debug("Doing scheduled update for user Apex data")
-
-        users = USER_DB.get_users()
-        updated_users = []
-
-        timestamp = math.floor(time.time())
-        valid, invalid = Stats._get_update(users)
-
-        if len(invalid) > 0:
-            logger.info("Couldn't find information for {} users, skipping them in update {}".format(len(invalid), invalid))
-
-        for v in valid:
-            (user, response) = v[0], v[1]
-
-            response = Stats._standardize_response(response, timestamp)
-            
-            (updated, state_changes) = Stats._do_update(user, response)
-            (started_session, ended_session, ended_match) = Stats._change_user_state(user, state_changes, timestamp)
-
-            if updated:
-                updated_users.append([user, state_changes])
-
-            if started_session:
-                # TODO: Create a new session
-                pass
-
-            if ended_match:
-                # TODO: Save match in session
-                pass
-            
-
-            if ended_session:
-                # TODO: End current session
-                pass
-            
-            
-        return updated_users
-
-    @staticmethod
-    def _get_update(users):
+    def get_update(users):
         if len(users) == 0:
             logger.debug("No users to update")
             return
-        
+
         players = users["origin"].tolist()
         uids = users["user"].tolist()
 
@@ -78,7 +31,7 @@ class Stats():
                 return [a, b]
 
             data = list(map(mapper, uids, data))
-        
+
         invalid_updates = []
         valid_updates = []
 
@@ -96,19 +49,19 @@ class Stats():
 
     @staticmethod
     def _make_request(players, platform="PC"):
-        url = API_URL.format(platform=platform, players=players, auth=config.MOZAMBIQUE_HERE_API_KEY)
+        url = API_URL.format(platform=platform, players=players, auth=MOZAMBIQUE_HERE_API_KEY)
 
-        logger.debug("Requesting to url {}".format(url))
+        logger.debug("Sending GET request to {}".format(url))
         try:
             response = requests.get(url, timeout=15)
         except requests.Timeout:
             logger.warning("Timeout reached whilst querying Mozambiquehe.re API")
             return
-        
+
         return json.loads(response.text)
 
     @staticmethod
-    def _standardize_response(response, timestamp, no_internal=True, no_img_assets=True, ignore_kd=True):
+    def standardize_response(response, timestamp, no_internal=True, no_img_assets=True, ignore_kd=True):
         """
         Takes a response from the Mozambiquehe.re API and transforms it into the Apex Bot structure
         """
@@ -151,39 +104,27 @@ class Stats():
         )
 
     @staticmethod
-    def _do_update(user, response):
-        last_update = UPDATE_DB.get_latest_update(user)
+    def should_update_db(old_data, current_data):
+        if len(old_data) == 0:
+            return True, []
 
-        if len(last_update) == 0:
-            UPDATE_DB.add_update(user, response)
-            return False, None
-
-        state_changes = Stats._compare_for_realtime_changes(last_update, response)
-
-        # Checks for when to update to DB
-        if state_changes['start_game'] or state_changes['finish_game'] or state_changes['changed_legend']:
-            UPDATE_DB.add_update(user, response)
-            return True, state_changes
-
-        return False, state_changes
-    
-    @staticmethod
-    def _compare_for_realtime_changes(old, new):
-        return dict(
-            online = new['realtime']['isOnline'],
-            start_game = old['realtime']['isInGame'] == 0 and new['realtime']['isInGame'] == 1,
-            finish_game = old['realtime']['isInGame'] == 1 and new['realtime']['isInGame'] == 0,
-            changed_legend = old['realtime']['selectedLegend'] != new['realtime']['selectedLegend'],
+        states = dict(
+            online = current_data['realtime']['isOnline'],
+            start_game = old_data['realtime']['isInGame'] == 0 and current_data['realtime']['isInGame'] == 1,
+            finish_game = old_data['realtime']['isInGame'] == 1 and current_data['realtime']['isInGame'] == 0,
+            changed_legend = old_data['realtime']['selectedLegend'] != current_data['realtime']['selectedLegend'],
         )
 
+        return states['start_game'] or states['finish_game'] or states['changed_legend'], states
+
     @staticmethod
-    def _change_user_state(user, state_changes, timestamp):
+    def change_user_state(user, state_changes, timestamp, user_db):
         started_session = False
         ended_session = False
         ended_match = False
         
-        if state_changes is None:
-            USER_DB.set_state(
+        if state_changes == []:
+            user_db.set_state(
                 user_id=user,
                 state='offline',
                 last_session_started=None,
@@ -191,11 +132,11 @@ class Stats():
             )
             return
 
-        current_user_state = USER_DB.get_users([user]).iloc[0]['apex']
+        current_user_state = user_db.get_users([user]).iloc[0]['apex']
 
         if state_changes['online'] and current_user_state['state'] == 'offline':
             logger.debug("User {} is now online Apex".format(user))
-            USER_DB.set_state(
+            user_db.set_state(
                 user_id=user,
                 state='online',
                 last_session_started=timestamp,
@@ -206,7 +147,7 @@ class Stats():
 
         if state_changes['start_game']:
             logger.debug("User {} has started a game of Apex".format(user))
-            USER_DB.set_state(
+            user_db.set_state(
                 user_id=user,
                 state='in_game',
                 last_session_started=current_user_state['last_session_started'],
@@ -215,7 +156,7 @@ class Stats():
 
         if state_changes['finish_game']:
             logger.debug("User {} has just finished a game of Apex".format(user))
-            USER_DB.set_state(
+            user_db.set_state(
                 user_id=user,
                 state='online',
                 last_session_started=current_user_state['last_session_started'],
@@ -226,7 +167,7 @@ class Stats():
 
         if not state_changes['online'] and current_user_state['state'] in ['online', 'in_game']:
             logger.debug("User {} has gone offline in Apex".format(user))
-            USER_DB.set_state(
+            user_db.set_state(
                 user_id=user,
                 state='offline',
                 last_session_started=current_user_state['last_session_started'],
@@ -235,3 +176,32 @@ class Stats():
 
             ended_session = True
         return started_session, ended_session, ended_match
+
+    @staticmethod
+    def get_match_data(user, old_data, new_data):
+        new_selected = new_data['selected']
+        old_selected = old_data['selected']
+
+        if old_selected['legend'] != new_selected['legend']:
+            logger.warning("Looks like the player {} managed to change legends before match saving.. Skipping?".format(user))
+            return
+
+        stats = {}
+        
+        for stat in new_selected['data']:
+            if old_selected['data'].get(stat):
+                name = stat
+                change = new_selected['data'][stat] - old_selected['data'][stat]
+
+                stats[name] = change
+
+        if len(stats) == 0:
+            logger.warning("No new data found for the player {}, did they manage to somehow change their banners between matches?".format(user))
+            return
+
+        return {
+            "started": old_data['timestamp'],
+            "ended": new_data['timestamp'],
+            "legend": new_selected['legend'],
+            "stats": stats
+        }
