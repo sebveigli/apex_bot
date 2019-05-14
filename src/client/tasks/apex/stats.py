@@ -2,7 +2,7 @@ import logging
 import json
 import requests
 
-from config import MOZAMBIQUE_HERE_API_KEY
+from config.config import MOZAMBIQUE_HERE_API_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +12,6 @@ API_URL_NAME = "http://api.mozambiquehe.re/bridge?version=2&platform={platform}&
 class Stats():
     @staticmethod
     def get_update(users):
-        if len(users) == 0:
-            logger.debug("No users to update")
-            return
-
         origin_uids = users["origin"].tolist()
         discord_uids = users["user"].tolist()
 
@@ -26,13 +22,13 @@ class Stats():
         data = Stats.make_request(search_term=",".join(str(uid) for uid in origin_uids), uid_search=True)
 
         # API gives us back a dict if only one user queried, whilst list for multiple - normalization
-        if len(users) == 1:
-            data = [[discord_uids[0], data]]
-        else:
-            def mapper(a, b):
-                return [a, b]
+        if type(data) is dict:
+            data = [data]
 
-            data = list(map(mapper, discord_uids, data))
+        def mapper(a, b):
+            return [a, b]
+
+        data = list(map(mapper, discord_uids, data))
 
         invalid_updates = []
         valid_updates = []
