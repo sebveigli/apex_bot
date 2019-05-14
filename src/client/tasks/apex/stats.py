@@ -6,7 +6,8 @@ from config import MOZAMBIQUE_HERE_API_KEY
 
 logger = logging.getLogger(__name__)
 
-API_URL = "http://api.mozambiquehe.re/bridge?version=2&platform={platform}&player={players}&auth={auth}"
+API_URL_UID = "http://api.mozambiquehe.re/bridge?version=2&platform={platform}&uid={uids}&auth={auth}"
+API_URL_NAME = "http://api.mozambiquehe.re/bridge?version=2&platform={platform}&player={players}&auth={auth}"
 
 class Stats():
     @staticmethod
@@ -15,22 +16,23 @@ class Stats():
             logger.debug("No users to update")
             return
 
-        players = users["origin"].tolist()
-        uids = users["user"].tolist()
+        origin_uids = users["origin"].tolist()
+        discord_uids = users["user"].tolist()
 
-        player_uids_tuple = zip(players, uids)
+        player_uids_tuple = zip(origin_uids, discord_uids)
 
         logger.debug('Updating users [{}]'.format(list(player_uids_tuple)))
-        data = Stats._make_request(players=",".join(players))
+        logger.debug("Origin UIDs {}".format(origin_uids))
+        data = Stats.make_request(search_term=",".join(str(uid) for uid in origin_uids), uid_search=True)
 
         # API gives us back a dict if only one user queried, whilst list for multiple - normalization
         if len(users) == 1:
-            data = [[uids[0], data]]
+            data = [[discord_uids[0], data]]
         else:
             def mapper(a, b):
                 return [a, b]
 
-            data = list(map(mapper, uids, data))
+            data = list(map(mapper, discord_uids, data))
 
         invalid_updates = []
         valid_updates = []
@@ -48,8 +50,11 @@ class Stats():
         return valid_updates, invalid_updates
 
     @staticmethod
-    def _make_request(players, platform="PC"):
-        url = API_URL.format(platform=platform, players=players, auth=MOZAMBIQUE_HERE_API_KEY)
+    def make_request(search_term, uid_search=True, platform="PC"):
+        if uid_search:
+            url = API_URL_UID.format(platform=platform, uids=search_term, auth=MOZAMBIQUE_HERE_API_KEY)
+        else:
+            url = API_URL_NAME.format(platform=platform, players=search_term, auth=MOZAMBIQUE_HERE_API_KEY)
 
         logger.debug("Sending GET request to {}".format(url))
         try:
