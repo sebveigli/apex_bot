@@ -45,7 +45,7 @@ class User():
             user=user_id,
             servers=[server_id],
             origin=origin_uid,
-            apex={},
+            apex={"state": "offline", "last_session_started": 0, "timestamp": 0},
             registered_on=math.floor(time.time())
         )
 
