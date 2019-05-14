@@ -12,7 +12,7 @@ class SetPrefix():
         logger = logging.getLogger(__name__)
         
         if not message_dispatcher._is_admin_user():
-            logger.info("User {} tried to use command {}, but does not have admin rights.".format(message_dispatcher.message.author.id, message_dispatcher.message.content))
+            logger.info("User {} tried to use command {}, but does not have admin rights.".format(message_dispatcher.message.author_id, message_dispatcher.message.content))
             return
 
         from client.utils.discord_embed import informational_embed
