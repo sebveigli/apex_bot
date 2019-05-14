@@ -65,8 +65,8 @@ class Update():
 
         if len(data['updates']) == 0:
             logger.info("No updates on user {}".format(user))
-            return []
-            
+            return None
+
         df = pd.DataFrame([data])
-        
+
         return df.updates[0][-1]

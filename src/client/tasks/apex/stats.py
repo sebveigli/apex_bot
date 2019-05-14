@@ -74,7 +74,7 @@ class Stats():
         selected_legend = list(response['legends']['selected'].keys())[0]
         
         # Remove API internal data
-        if no_internal:
+        if no_internal and response.get('mozambiquehere_internal'):
             del response['mozambiquehere_internal']
 
         # Remove image links to legends
@@ -110,8 +110,8 @@ class Stats():
 
     @staticmethod
     def should_update_db(old_data, current_data):
-        if len(old_data) == 0:
-            return True, []
+        if not old_data:
+            return True, None
 
         states = dict(
             online = current_data['realtime']['isOnline'],
@@ -128,7 +128,7 @@ class Stats():
         ended_session = False
         ended_match = False
         
-        if state_changes == []:
+        if not state_changes:
             user_db.set_state(
                 user_id=user,
                 state='offline',
