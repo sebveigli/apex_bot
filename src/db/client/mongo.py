@@ -3,18 +3,13 @@ import os
 
 from pymongo import MongoClient, errors
 
-import config
+from config import config
 
 logger = logging.getLogger(__name__)
 
 class Mongo():
     def __init__(self, table, table_index, is_unique):
-        if os.environ.get("env"):
-            env = os.environ["env"]
-        else:
-            env = "dev"
-        
-        logger.debug("Connecting to {} DB - accessing table '{}'".format(env, table))
+        logger.debug("Connecting to MongoDB and accessing table '{}'".format(table))
 
         self.client = MongoClient(host=config.MONGO["host"], port=config.MONGO["port"])
         self.db = self.client[config.MONGO['name']]
