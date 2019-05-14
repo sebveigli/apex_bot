@@ -20,7 +20,7 @@ class Register():
         if data.get('Error'):
             return await message_dispatcher.message.channel.send(
                 embed=error_embed(
-                    description="There was an error retrieving your data from the Respawn servers <@{}> - are you sure you typed the correct Origin account name?"
+                    description="There was an error retrieving your data from the Respawn servers <@{}> - are you sure you typed the correct Origin account name?".format(message_dispatcher.author_id)
                 )
             )
 
@@ -43,7 +43,7 @@ class Register():
                 )
             )
         else:
-            user_db.set_origin_name(message_dispatcher.author.id, data['profile']['uid'])
+            user_db.set_origin_name(message_dispatcher.author_id, data['profile']['uid'])
 
             return await message_dispatcher.message.channel.send(
                 embed=success_embed(
