@@ -9,25 +9,20 @@ from pymongo import MongoClient
 logger = logging.getLogger(__name__)
 
 SEVERITIES = {'debug': logging.DEBUG, 'info': logging.INFO, 'warning': logging.WARNING, 'error': logging.ERROR, 'critical': logging.CRITICAL}
-ENVS = ['dev', 'prod']
 
 def bootstrap_app(**kwargs):
     _set_cwd()
     
     args = _get_args()
-    
-    _set_env(args.env, kwargs.get('env'))
-    _add_config_to_path()
+
     _start_loggers(SEVERITIES[args.file_severity], SEVERITIES[args.console_severity])
     _check_db_connection()
-
 
     logger.info("App bootstrapped")
 
 def start_discord():
+    from config import config
     from client.discord_client import DiscordClient
-
-    import config
 
     d = DiscordClient()
     d.run(config.DISCORD_BOT_TOKEN)
@@ -39,24 +34,13 @@ def _set_cwd():
 def _get_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--env', '--e', default='dev', required=False, choices=ENVS)
     parser.add_argument('--file_severity', '--f', default='info', required=False, choices=[severity for severity in SEVERITIES])
     parser.add_argument('--console_severity', '--c', default='debug', required=False, choices=[severity for severity in SEVERITIES])
 
     return parser.parse_args()
 
-def _set_env(env, override):
-    if override and override in ENVS:
-        os.environ['env'] = override
-        return
-    
-    os.environ['env'] = env
-
-def _add_config_to_path():
-    sys.path.append(os.path.join(os.getcwd(), 'envs', os.environ['env']))
-
 def _start_loggers(f_severity, c_severity):
-    import config
+    from config import config
     
     skipped = ['websockets']
 
@@ -95,7 +79,7 @@ def _start_loggers(f_severity, c_severity):
     l.addHandler(ch)
 
 def _check_db_connection():
-    import config
+    from config import config
 
     logger.debug("Checking DB connection to Mongo")
 

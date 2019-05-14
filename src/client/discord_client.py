@@ -29,7 +29,7 @@ class DiscordClient(discord.Client):
 
     async def on_ready(self):
         logger.info("Connected to Discord successfully.")
-        logger.info("Logged in as @{0.name}#{0.discriminator} [UID: {0.id}] in environment {1}".format(self.user, os.environ["env"]))
+        logger.info("Logged in as @{0.name}#{0.discriminator} [UID: {0.id}]".format(self.user))
         logger.info("Starting background tasks")
         
         asyncio.ensure_future(ScheduledAsyncTasks.update_client_presence(self))

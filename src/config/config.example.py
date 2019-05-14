@@ -1,9 +1,4 @@
 """
-Set this config file up for your development environment (if applicable).
-
-If you plan to run this bot directly on your server without touching the code,
-please set the configuration in src/envs/prod/config.example.py
-
 Don't forget to rename from config.example.py to config.py
 """
 
@@ -34,8 +29,6 @@ MOZAMBIQUE_HERE_API_KEY is your API key for http://mozambiquehe.re.
 You will need to request a key for yourself there in order to track Apex stats.
 """
 MOZAMBIQUE_HERE_API_KEY = "yourapikeygoeshere"
-
-BOT_STATUS = "Being Tested!" # Will show as 'Playing Being Tested!' on Discord
 
 """
 Mongo DB is the database used for this bot.
