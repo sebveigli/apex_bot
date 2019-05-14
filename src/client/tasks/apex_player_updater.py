@@ -26,6 +26,9 @@ class ApexPlayerUpdater(threading.Thread):
                 logger.debug("Starting Apex data refresh for all users")
                 users = self.user_db.get_users()
 
+                if users is None:
+                    raise NoUsersToUpdateError()
+
                 valid, invalid = Stats.get_update(users)
                 logger.debug("Valid queries {}".format(list(v[0] for v in valid)))
                 logger.debug("Invalid queries {}".format(list(i for i in invalid)))
@@ -50,9 +53,13 @@ class ApexPlayerUpdater(threading.Thread):
                             match_data = Stats.get_match_data(user, previous_data, current_data)
 
                             self.match_db.add_match(user, match_data)
-
+            except NoUsersToUpdateError:
+                logger.info("Skipping update, no users to check")
             except Exception as e:
                 logger.critical("Error occurred whilst running ApexPlayerUpdater - {}".format(str(e)))
             finally:
                 self.running = False
                 time.sleep(10)
+
+class NoUsersToUpdateError(Exception):
+    pass
