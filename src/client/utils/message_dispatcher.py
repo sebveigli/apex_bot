@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 class MessageDispatcher():
     def __init__(self, message):
         self.message = message
+        self.author_id = message.author.id
         self.server_id = message.guild.id
         self.split_message = message.content.split(' ')
 
@@ -21,11 +22,14 @@ class MessageDispatcher():
         for c in commands:
             if c.match(self.split_message[0][1:]):
                 logger.debug("Matched with command class {}".format(c))
-                return await c.execute(self)
+                try:
+                    return await c.execute(self)
+                except Exception as e:
+                    logger.critical(str(e))
 
     def _is_valid_command(self):
         return self.split_message[0][0] == self.server_config['prefix']
 
     def _is_admin_user(self):
         print(self.server_config['owner'])
-        return self.message.author.id in self.server_config['admins'] or self.message.author.id == self.server_config['owner']
+        return self.author_id in self.server_config['admins'] or self.author_id == self.server_config['owner']
