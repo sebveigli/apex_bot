@@ -21,7 +21,7 @@ class Stats():
 
         player_uids_tuple = zip(origin_uids, discord_uids)
 
-        logger.debug('Updating users [{}]'.format(list(player_uids_tuple)))
+        logger.debug('Updating users {}'.format(list(player_uids_tuple)))
         logger.debug("Origin UIDs {}".format(origin_uids))
         data = Stats.make_request(search_term=",".join(str(uid) for uid in origin_uids), uid_search=True)
 
