@@ -31,17 +31,20 @@ class User():
 
         df = pd.DataFrame(list(data))
 
+        if df.empty:
+            return None
+
         if users:
             df = df[df.user.isin(users)]
 
         return df
 
     @staticmethod
-    def add_user(user_id, server_id, origin_name):
+    def add_user(user_id, server_id, origin_uid):
         payload = dict(
             user=user_id,
             servers=[server_id],
-            origin=origin_name,
+            origin=origin_uid,
             apex={},
             registered_on=math.floor(time.time())
         )
