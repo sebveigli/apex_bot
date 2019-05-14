@@ -42,6 +42,7 @@ class ApexPlayerUpdater(threading.Thread):
                         logger.debug("Saving data for {}".format(user))
                         self.update_db.add_update(user, current_data)
 
+                    if states and len([s for s in states if states[s] == True]) > 0:
                         Stats.change_user_state(user, states, timestamp, self.user_db)
 
                         if states['finish_game']:
