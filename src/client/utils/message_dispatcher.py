@@ -1,13 +1,16 @@
 import logging
 
 from client.commands import commands
-from db import get_server_db
+import db
 
 logger = logging.getLogger(__name__)
 
 class MessageDispatcher():
     def __init__(self, message):
-        self.server_db = get_server_db()
+        self.server_db = db.get_server_db()
+        self.user_db = db.get_user_db()
+        self.match_db = db.get_match_db()
+        self.update_db = db.get_update_db()
 
         self.message = message
         self.author_id = message.author.id
@@ -41,7 +44,7 @@ class MessageDispatcher():
         return self.split_message[0][0] == self.server_config['prefix']
 
     def _is_admin_user(self):
-        import config
+        from config import config
 
         if not self.server_id:
             return self.author_id == config.OWNER_ID
