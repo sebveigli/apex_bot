@@ -7,7 +7,6 @@ from client.commands.set_prefix import SetPrefix
 class MockMessageDispatcher(Mock):
     server_id = 123456789
     split_message = ["^setprefix", "!"]
-    server_db = Mock()
 
     async def return_async_val(self, val):
         return val
@@ -30,6 +29,7 @@ async def test_execute_not_admin():
     res = await SetPrefix.execute(mmd)
 
     assert res is None
+    assert not mmd.server_db.set_prefix.called
 
 @pytest.mark.asyncio
 async def test_change_prefix_as_admin():
@@ -42,4 +42,3 @@ async def test_change_prefix_as_admin():
     res = await SetPrefix.execute(mmd)
 
     mmd.server_db.set_prefix.assert_called_with(123456789, "!")
-    
