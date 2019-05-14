@@ -2,7 +2,6 @@ import logging
 
 from client.tasks.apex.stats import Stats
 from client.utils.discord_embed import error_embed, success_embed
-from db import get_user_db, get_update_db, get_match_db
 
 VALID_COMMANDS = ["register", "add"]
 
@@ -26,16 +25,12 @@ class Register():
 
         data = Stats.standardize_response(data, timestamp=None)
 
-        user_db = get_user_db()
-        user = user_db.get_users([message_dispatcher.author_id])
+        user = message_dispatcher.user_db.get_users([message_dispatcher.author_id])
 
         if user is None:
-            update_db = get_update_db()
-            match_db = get_match_db()
-
-            user_db.add_user(message_dispatcher.author_id, message_dispatcher.server_id, data['profile']['uid'])
-            update_db.add_user(message_dispatcher.author_id)
-            match_db.add_user(message_dispatcher.author_id)
+            message_dispatcher.user_db.add_user(message_dispatcher.author_id, message_dispatcher.server_id, data['profile']['uid'])
+            message_dispatcher.update_db.add_user(message_dispatcher.author_id)
+            message_dispatcher.match_db.add_user(message_dispatcher.author_id)
 
             return await message_dispatcher.message.channel.send(
                 embed=success_embed(
@@ -43,7 +38,7 @@ class Register():
                 )
             )
         else:
-            user_db.set_origin_name(message_dispatcher.author_id, data['profile']['uid'])
+            message_dispatcher.user_db.set_origin_name(message_dispatcher.author_id, data['profile']['uid'])
 
             return await message_dispatcher.message.channel.send(
                 embed=success_embed(
