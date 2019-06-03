@@ -6,8 +6,8 @@ from config.config import MOZAMBIQUE_HERE_API_KEY
 
 logger = logging.getLogger(__name__)
 
-API_URL_UID = "http://api.mozambiquehe.re/bridge?version=2&platform={platform}&uid={uids}&auth={auth}"
-API_URL_NAME = "http://api.mozambiquehe.re/bridge?version=2&platform={platform}&player={players}&auth={auth}"
+API_URL_UID = "http://premium-api.mozambiquehe.re/bridge?version=2&platform={platform}&uid={uids}&auth={auth}"
+API_URL_NAME = "http://premium-api.mozambiquehe.re/bridge?version=2&platform={platform}&player={players}&auth={auth}"
 
 class Stats():
     @staticmethod
