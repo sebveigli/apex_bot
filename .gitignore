@@ -105,3 +105,5 @@ venv.bak/
 
 src/config/config.py
 logs/*
+.vscode/launch.json
+.vscode/settings.json
