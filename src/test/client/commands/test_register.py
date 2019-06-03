@@ -1,77 +1,73 @@
 import pytest
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from client.commands.register import Register
 
-class MockMessageDispatcher(Mock):
-    server_id = 1337
-    author_id = 123456789
+@pytest.fixture(scope='module')
+def register():
+    return Register()
 
-    async def return_async_val(self, val):
-        return val
+def test_valid_match(register):
+    assert register.match("register") is True
 
-def test_valid_match():
-    assert Register.match("register") is True
+def test_valid_match_case_insensitive(register):
+    assert register.match("aDd") is True
 
-def test_valid_match_case_insensitive():
-    assert Register.match("aDd") is True
-
-def test_invalid_match():
-    assert Register.match("foo") is False
+def test_invalid_match(register):
+    assert register.match("foo") is False
 
 @pytest.mark.asyncio
-async def test_invalid_origin_name():
-    mmd = MockMessageDispatcher()
-    
-    mmd.split_message = ['foobar', 'foobarbaz123']
-    mmd.message.channel.send.return_value = mmd.return_async_val('foo')
+async def test_invalid_origin_name(mock_message_dispatcher, register):
+    mock_message_dispatcher.message.channel.send.return_value = mock_message_dispatcher.return_async_val('foo')
+    mock_message_dispatcher.split_message = ['register', 'randomnamethatdoesntexist']
 
-    await Register.execute(mmd)
+    await register.execute(mock_message_dispatcher)
 
-    assert mmd.message.channel.send.called
-    assert not mmd.user_db.get_users.called
-    assert not mmd.user_db.add_user.called
-    assert not mmd.update_db.add_user.called
-    assert not mmd.match_db.add_user.called
+    mock_message_dispatcher.user_db.get_users.assert_not_called()
+    mock_message_dispatcher.user_db.add_user.assert_not_called()
+    mock_message_dispatcher.update_db.add_user.assert_not_called()
+    mock_message_dispatcher.match_db.add_user.assert_not_called()
 
 @pytest.mark.asyncio
-async def test_valid_origin_name_existing_user_update():
-    mmd = MockMessageDispatcher()
+async def test_valid_origin_name_existing_user_update(mock_message_dispatcher, register):
+    mock_message_dispatcher.split_message = ['register', 'protent1al']
+    mock_message_dispatcher.message.channel.send.return_value = mock_message_dispatcher.return_async_val('foo')
+
+    mock_user_db = Mock()
+    mock_user_db.get_users.return_value = [{'user': 123456789, 'origin': 0}]
 
     protential_uid = 1000141524238
-    
-    mmd.split_message = ['foobar', 'protent1al']
-    mmd.user_db.get_users.return_value = [{'user': 123456789, 'origin': 0}]
 
-    mmd.message.channel.send.return_value = mmd.return_async_val('foo')
+    with patch.object(register, 'get_user_db', return_value=mock_user_db):
+        await register.execute(mock_message_dispatcher)
 
-    await Register.execute(mmd)
+    mock_user_db.get_users.assert_called_with([123456789])
+    mock_user_db.add_user.assert_not_called()
+    mock_user_db.set_origin_name.assert_called_with(123456789, protential_uid)
 
-    mmd.user_db.get_users.assert_called_with([123456789])
-    mmd.user_db.set_origin_name.assert_called_with(123456789, protential_uid)
-    
-    assert mmd.message.channel.send.called
-    assert not mmd.user_db.add_user.called
-    assert not mmd.update_db.add_user.called
-    assert not mmd.match_db.add_user.called
 
 @pytest.mark.asyncio
-async def test_valid_origin_name_new_user():
-    mmd = MockMessageDispatcher()
+async def test_valid_origin_name_new_user(mock_message_dispatcher, register):
+    mock_message_dispatcher.split_message = ['register', 'protent1al']
+    mock_message_dispatcher.message.channel.send.return_value = mock_message_dispatcher.return_async_val('foo')
+
+    mock_user_db = Mock()
+    mock_update_db = Mock()
+    mock_match_db = Mock()
+
+    mock_user_db.get_users.return_value = None
+
+    with patch.object(register, 'get_user_db', return_value=mock_user_db):
+        with patch.object(register, 'get_update_db', return_value=mock_update_db):
+            with patch.object(register, 'get_match_db', return_value=mock_match_db):
+                await register.execute(mock_message_dispatcher)
 
     protential_uid = 1000141524238
-    mmd.split_message = ['foobar', 'protent1al']
-    mmd.user_db.get_users.return_value = None
 
-    mmd.message.channel.send.return_value = mmd.return_async_val('foo')
+    mock_user_db.get_users.assert_called_with([123456789])
+    mock_user_db.add_user.assert_called_with(123456789, 1337, protential_uid)
+    mock_update_db.add_user.assert_called_with(123456789)
+    mock_match_db.add_user.assert_called_with(123456789)
 
-    await Register.execute(mmd)
-
-    mmd.user_db.get_users.assert_called_with([123456789])
-    mmd.user_db.add_user.assert_called_with(123456789, 1337, protential_uid)
-    mmd.update_db.add_user.assert_called_with(123456789)
-    mmd.match_db.add_user.assert_called_with(123456789)
-
-    assert mmd.message.channel.send.called
-    assert not mmd.user_db.set_origin_name.called
+    mock_message_dispatcher.user_db.set_origin_name.assert_not_called()

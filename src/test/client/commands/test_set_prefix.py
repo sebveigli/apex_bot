@@ -1,44 +1,43 @@
 import pytest
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from client.commands.set_prefix import SetPrefix
 
-class MockMessageDispatcher(Mock):
-    server_id = 123456789
-    split_message = ["^setprefix", "!"]
+@pytest.fixture(scope='module')
+def set_prefix():
+    return SetPrefix()
 
-    async def return_async_val(self, val):
-        return val
+def test_valid_match(set_prefix):
+    assert set_prefix.match("setprefix") is True
 
-def test_valid_match():
-    assert SetPrefix.match("setprefix") is True
+def test_valid_match_case_insensitive(set_prefix):
+    assert set_prefix.match("sEtPReFix") is True
 
-def test_valid_match_case_insensitive():
-    assert SetPrefix.match("sEtPReFix") is True
-
-def test_invalid_match():
-    assert SetPrefix.match("setprefox") is False
+def test_invalid_match(set_prefix):
+    assert set_prefix.match("setprefox") is False
 
 @pytest.mark.asyncio
-async def test_execute_not_admin():
-    mmd = MockMessageDispatcher()
-
-    mmd._is_admin_user.return_value = False
+async def test_execute_not_admin(mock_message_dispatcher, set_prefix):
+    mock_message_dispatcher._is_admin_user.return_value = False
     
-    res = await SetPrefix.execute(mmd)
+    mock_server_db = Mock()
+    
+    with patch.object(set_prefix, 'get_server_db', return_value=mock_server_db):
+        await set_prefix.execute(mock_message_dispatcher)
 
-    assert res is None
-    assert not mmd.server_db.set_prefix.called
+    mock_server_db.assert_not_called()
 
 @pytest.mark.asyncio
-async def test_change_prefix_as_admin():
-    mmd = MockMessageDispatcher()
+async def test_change_prefix_as_admin(mock_message_dispatcher, set_prefix):
+    mock_message_dispatcher.message.channel.send.return_value = mock_message_dispatcher.return_async_val('foo')
 
-    mmd._is_admin_user.return_value = True
-    mmd.server_db.set_prefix.return_value = None
-    mmd.message.channel.send.return_value = mmd.return_async_val('foo')
+    mock_message_dispatcher._is_admin_user.return_value = True
+    mock_message_dispatcher.split_message = ["setprefix", "!"]
+    
+    mock_server_db = Mock()
+    
+    with patch.object(set_prefix, 'get_server_db', return_value=mock_server_db):
+        await set_prefix.execute(mock_message_dispatcher)
 
-    res = await SetPrefix.execute(mmd)
-
-    mmd.server_db.set_prefix.assert_called_with(123456789, "!")
+    mock_server_db.set_prefix.assert_called_with(1337, "!")
