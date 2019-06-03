@@ -26,6 +26,7 @@ class DiscordClient(discord.Client):
         it is running. This can be used to prevent race conditions whilst stats are being updated.
         """
         self.apex_player_updater = ApexPlayerUpdater()
+        self.prefix_cache = {}
 
     async def on_ready(self):
         logger.info("Connected to Discord successfully.")
@@ -33,6 +34,8 @@ class DiscordClient(discord.Client):
         logger.info("Starting background tasks")
         
         asyncio.ensure_future(ScheduledAsyncTasks.update_client_presence(self))
+        asyncio.ensure_future(ScheduledAsyncTasks.update_server_prefix_cache(self.prefix_cache))
+        asyncio.ensure_future(ScheduledAsyncTasks.clear_update_history(self.apex_player_updater))
         # asyncio.ensure_future(ScheduledTasks.update_tournaments(self.apex_updater))
         self.apex_player_updater.start()
 
@@ -41,7 +44,7 @@ class DiscordClient(discord.Client):
         if message.author.id == self.user.id or message.author.bot:
             return
 
-        asyncio.ensure_future(MessageDispatcher(message).dispatch())
+        asyncio.ensure_future(MessageDispatcher(message).dispatch(self.prefix_cache))
 
     async def on_guild_join(self, guild):
         logger.info("Joined new server {0} ({0.id})".format(guild))
@@ -49,6 +52,7 @@ class DiscordClient(discord.Client):
         server_db = get_server_db()
 
         server_db.add_server(guild.id, guild.owner.id, guild.text_channels[0].id)
+        self.prefix_cache[guild.id] = "^"
 
         await self.get_channel(guild.text_channels[0].id).send("Thanks for inviting <@{0.id}> to your channel.".format(self.user))
 

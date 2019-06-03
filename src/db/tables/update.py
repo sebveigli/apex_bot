@@ -70,3 +70,13 @@ class Update():
         df = pd.DataFrame([data])
 
         return df.updates[0][-1]
+
+    @staticmethod
+    def clear_updates(user):
+        data = mongo.find_first('user', user)
+
+        if len(data['updates']) == 0:
+            logger.debug("No updates for user, skipping")
+            return
+        
+        mongo.update_field('user', user, 'updates', [])
