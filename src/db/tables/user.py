@@ -31,13 +31,10 @@ class User():
 
         df = pd.DataFrame(list(data))
 
-        if df.empty:
-            return None
-
-        if users:
+        if users and not df.empty:
             df = df[df.user.isin(users)]
 
-        return df
+        return df if not df.empty else None
 
     @staticmethod
     def add_user(user_id, server_id, origin_uid):
