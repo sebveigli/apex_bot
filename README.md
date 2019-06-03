@@ -1,3 +1,9 @@
+# Update May 2019
+
+Currently the bot is held in a bit of a limbo state. Unfortunately, the core ideas behind this bot cannot be efficiently scaled with the API resources currently available.
+
+I will continue the development of the bot in order to get it to a working state for server-only functionality, and disregarding the global functionality for now (until a better solution comes into play). This means, the bot will have to run locally for people who want to add this bot to their server(s).
+
 # Apex Bot for Discord
 
 Apex Bot for Discord is a currently in-development stage Bot that will run on Discord, allowing for several features revolving around the newest title from Respawn, Apex Legends.
