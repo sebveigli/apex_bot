@@ -67,26 +67,24 @@ class Stats():
         return json.loads(response.text)
 
     @staticmethod
-    def standardize_response(response, timestamp, no_internal=True, no_img_assets=True, ignore_kd=True):
+    def standardize_response(response, timestamp, no_img_assets=True, ignore_kd=True):
         """
         Takes a response from the Mozambiquehe.re API and transforms it into the Apex Bot structure
         """
         logger.debug("Standardizing response")
         selected_legend = list(response['legends']['selected'].keys())[0]
         
-        # Remove API internal data
-        if no_internal and response.get('mozambiquehere_internal'):
-            del response['mozambiquehere_internal']
-
         # Remove image links to legends
         if no_img_assets:
-            del response['legends']['selected'][selected_legend]['ImgAssets']
+            if response['legends']['selected'][selected_legend].get('ImgAssets'):
+                del response['legends']['selected'][selected_legend]['ImgAssets']
 
             for legend in response['legends']['all']:
-                del response['legends']['all'][legend]['ImgAssets']
+                if response['legends']['all'][legend].get('ImgAssets'):
+                    del response['legends']['all'][legend]['ImgAssets']
 
         # Ignore KD as it's calculated by the API
-        if ignore_kd:
+        if ignore_kd and response['total'].get('kd'):
             del response['total']['kd']
         
         # Append data key if doesn't exist for all legends to keep data normalized
