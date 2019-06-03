@@ -54,7 +54,12 @@ class Stats():
 
         logger.debug("Sending GET request to {}".format(url))
         try:
-            response = requests.get(url, timeout=15)
+            response = requests.get(url, timeout=10)
+
+            if response.status_code != 200:
+                logger.warning("Non 200 response received from API ({})".format(response.status_code))
+                return
+
         except requests.Timeout:
             logger.warning("Timeout reached whilst querying Mozambiquehe.re API")
             return
