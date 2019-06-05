@@ -17,6 +17,7 @@ def test_valid_match_case_insensitive(register):
 def test_invalid_match(register):
     assert register.match("foo") is False
 
+
 @pytest.mark.asyncio
 async def test_invalid_origin_name(mock_message_dispatcher, register):
     mock_message_dispatcher.message.channel.send.return_value = mock_message_dispatcher.return_async_val('foo')
