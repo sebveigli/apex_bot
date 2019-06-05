@@ -8,7 +8,7 @@ from db import get_server_db
 
 from client.utils.message_dispatcher import MessageDispatcher
 from client.tasks.scheduled_async_tasks import ScheduledAsyncTasks
-from client.tasks.apex_player_updater import ApexPlayerUpdater
+from services.stat_updater import StatUpdater
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class DiscordClient(discord.Client):
         ApexPlayerUpdater overwrites the standard Python threading and implements a variable for whether
         it is running. This can be used to prevent race conditions whilst stats are being updated.
         """
-        self.apex_player_updater = ApexPlayerUpdater()
+        self.stat_updater = StatUpdater(self)
         self.prefix_cache = {}
 
     async def on_ready(self):
@@ -35,9 +35,9 @@ class DiscordClient(discord.Client):
         
         asyncio.ensure_future(ScheduledAsyncTasks.update_client_presence(self))
         asyncio.ensure_future(ScheduledAsyncTasks.update_server_prefix_cache(self.prefix_cache))
-        asyncio.ensure_future(ScheduledAsyncTasks.clear_update_history(self.apex_player_updater))
+        asyncio.ensure_future(ScheduledAsyncTasks.clear_update_history(self.stat_updater))
         # asyncio.ensure_future(ScheduledTasks.update_tournaments(self.apex_updater))
-        self.apex_player_updater.start()
+        self.stat_updater.start()
 
 
     async def on_message(self, message):
